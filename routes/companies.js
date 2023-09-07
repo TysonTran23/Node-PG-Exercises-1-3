@@ -18,9 +18,19 @@ router.get("/:code", async (req, res, next) => {
     const result = await db.query(`SELECT * FROM companies WHERE code=$1`, [
       code,
     ]);
+    const invoiceResult = await db.query(
+      `SELECT * FROM invoices WHERE comp_code=$1`,
+      [code]
+    );
     if (result.rows.length === 0)
       throw new Error(`Can't find company with code of ${code}`, 404);
-    return res.send({ companies: result.rows[0] });
+
+    const company = result.rows[0];
+    const invoices = invoiceResult.rows;
+
+    company.invoices = invoices.map((inv) => inv.id);
+
+    return res.json({ companies: company });
   } catch (e) {
     return next(e);
   }
@@ -62,7 +72,10 @@ router.delete("/:code", async (req, res, next) => {
       req.params.code,
     ]);
     if (result.rows.length === 0)
-      throw new ExpressError(`Could not find company with the code of ${code}`, 404);
+      throw new ExpressError(
+        `Could not find company with the code of ${code}`,
+        404
+      );
 
     res.json({ status: "deleted" });
   } catch (e) {
